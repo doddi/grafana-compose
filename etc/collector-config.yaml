@@ -1,0 +1,73 @@
+receivers:
+  otlp:
+    protocols:
+      grpc:
+      http:
+
+exporters:
+  jaeger:
+    endpoint: jaeger-all-in-one:14250
+    tls:
+      insecure: true
+
+  logging:
+    loglevel: "debug"
+
+  prometheus:
+    endpoint: "0.0.0.0:9464"
+
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    tenant_id: "example"
+    labels:
+      resource:
+        # Allowing 'container.name' attribute and transform it to 'container_name', which is a valid Loki label name.
+        container.name: "container_name"
+        # Allowing 'k8s.cluster.name' attribute and transform it to 'k8s_cluster_name', which is a valid Loki label name.
+        k8s.cluster.name: "k8s_cluster_name"
+
+        conatainer.id: "container_id"
+        host.arch: "host_arch"
+        host.name: "host_name"
+        os.description: "os_description"
+        os.type: "os_type"
+        process.command.line: "process_command_line"
+        process.executable.path: "process_executable_path"
+        process.pid: "process_pid"
+        process.runtime.description: "process_runtime_description"
+        process.runtime.name: "process_runtime_name"
+        process.runtime.version: "process_runtime_version"
+        service.name: "service_name"
+        telemetry.auto.version: "telemetry_auto_version"
+        telemetry.sdk.language: "telemetry_sdk_language"
+        telemetry.sdk.name: "telemetry_sdk_name"
+        telemetry.sdk.version: "telemetry_sdk_version"
+      attributes:
+        # Allowing 'severity' attribute and not providing a mapping, since the attribute name is a valid Loki label name.
+        severity: ""
+        http.status_code: "http_status_code"
+      record:
+        # Adds 'traceID' as a log label, seen as 'traceid' in Loki.
+        traceID: "traceid"
+        spanID: "spanid"
+
+    headers:
+      "X-Custom-Header": "loki_rocks"
+
+processors:
+  batch:
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      exporters: [jaeger]
+      processors: [batch]
+    metrics:
+      receivers: [otlp]
+      exporters: [prometheus]
+      processors: [batch]
+    logs:
+      receivers: [otlp]
+      exporters: [loki]
+      processors: [batch]
